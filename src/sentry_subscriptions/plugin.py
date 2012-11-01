@@ -4,22 +4,12 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import Plugin
+from sentry.plugins.sentry_mail.models import UnicodeSafePyliner
 
 from pynliner import Pynliner
 
 import fnmatch
 import sentry_subscriptions
-
-
-class UnicodeSafePynliner(Pynliner):
-    def _get_output(self):
-        """
-        Generate Unicode string of `self.soup` and set it to `self.output`
-
-        Returns self.output
-        """
-        self.output = unicode(self.soup)
-        return self.output
 
 
 class SubscriptionOptionsForm(forms.Form):
@@ -57,6 +47,8 @@ class SubscriptionsPlugin(Plugin):
         msg.send(fail_silently=fail_silently)
 
     def send_notification(self, emails, group, event, fail_silently=False):
+        '''Shamelessly adapted from sentry.plugins.sentry_mail.models.MailProcessor'''
+
         project = group.project
 
         interface_list = []
@@ -66,8 +58,8 @@ class SubscriptionsPlugin(Plugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
-            event.error().encode('utf-8').splitlines()[0])
+        subject = '[%s] %s %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
+            event.culprit.encode('utf-8'), event.error().encode('utf-8').splitlines()[0])
 
         link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
 
