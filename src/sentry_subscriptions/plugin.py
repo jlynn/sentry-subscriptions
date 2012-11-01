@@ -1,21 +1,74 @@
 from django import forms
 from django.core.mail import EmailMultiAlternatives
+from django.core.validators import email_re
+from django.core.validators import ValidationError
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import Plugin
-from sentry.plugins.sentry_mail.models import UnicodeSafePyliner
-
-from pynliner import Pynliner
+from sentry.plugins.sentry_mail.models import UnicodeSafePynliner
 
 import fnmatch
 import sentry_subscriptions
 
 
+class SubscriptionField(forms.CharField):
+    '''Custom field for converting stored dictionary value to TextArea string'''
+
+    def prepare_value(self, value):
+        '''Convert dict to string'''
+
+        if isinstance(value, dict):
+            value = self.to_text(value)
+
+        return value
+
+    def to_text(self, value):
+
+        subscription_lines = []
+        for pattern, emails in value.iteritems():
+            subscription_lines.append('%s %s' % (pattern, ','.join(emails)))
+
+        return '\n'.join(subscription_lines)
+
+
 class SubscriptionOptionsForm(forms.Form):
-    subscriptions = forms.CharField(label=_('Subscriptions'),
-        widget=forms.Textarea(attrs={'class': 'span6', 'placeholder': 'module.submodule.* example@email.com,foo@bar.com'}),
+    subscriptions = SubscriptionField(label=_('Subscriptions'),
+        widget=forms.Textarea(attrs={'class': 'span6', 'placeholder': 'module.submodule.* example@domain.com,foo@bar.com'}),
         help_text=_('Enter one subscription per line in the format of <module patter> <notification emails>.'))
+
+    def clean_subscriptions(self):
+
+        value = self.cleaned_data['subscriptions']
+        subscription_lines = value.strip().splitlines()
+        subscriptions = {}
+
+        for subscription_line in subscription_lines:
+            tokens = subscription_line.split(' ')
+            if len(tokens) != 2:
+                raise ValidationError('Invalid subscription specification: %s. Must specify a module pattern and list of emails' % subscription_line)
+
+            pattern = self.clean_pattern(tokens[0])
+            emails = self.clean_emails(tokens[1])
+
+            if pattern in subscriptions:
+                raise ValidationError('Duplicate subscription: %s' % subscription_line)
+
+            subscriptions[pattern] = emails
+
+        return subscriptions
+
+    def clean_pattern(self, pattern):
+        return pattern
+
+    def clean_emails(self, emails):
+        email_values = emails.split(',')
+
+        for email in email_values:
+            if not email_re.match(email):
+                raise ValidationError('%s is not a valid email address' % email)
+
+        return email_values
 
 
 class SubscriptionsPlugin(Plugin):
@@ -109,14 +162,13 @@ class SubscriptionsPlugin(Plugin):
         return False
 
     def get_matches(self, event):
-        subscriptions = self.get_option('subscriptions', event.project).strip().splitlines()
+        subscriptions = self.get_option('subscriptions', event.project)
 
         notifications = []
 
-        for subscription in subscriptions:
-            pattern, emails = subscription.split(' ')
+        for pattern, emails in subscriptions.iteritems():
             if fnmatch.fnmatch(event.culprit, pattern):
-                notifications += emails.split(',')
+                    notifications += emails
         
         return notifications
 
