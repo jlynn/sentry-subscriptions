@@ -1,3 +1,4 @@
+from setuptools import find_packages
 from setuptools import setup
 
 install_requires = [
@@ -10,6 +11,7 @@ setup(
     author='John Lynn',
     author_email='jlynn@hearsaycorp.com',
     package_dir={'': 'src'},
+    packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
     entry_points={
