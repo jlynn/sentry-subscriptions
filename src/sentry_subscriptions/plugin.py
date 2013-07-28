@@ -4,7 +4,7 @@ from django.core.validators import email_re
 from django.core.validators import ValidationError
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
-from sentry.conf import settings
+from django.conf import settings
 from sentry.plugins import Plugin
 from sentry.plugins.sentry_mail.models import UnicodeSafePynliner
 
