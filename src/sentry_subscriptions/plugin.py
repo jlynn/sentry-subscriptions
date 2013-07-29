@@ -114,7 +114,7 @@ class SubscriptionsPlugin(Plugin):
         subject = '[%s] %s %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
             event.culprit.encode('utf-8'), event.error().encode('utf-8').splitlines()[0])
 
-        link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
+        link = group.get_absolute_url()
 
         body = render_to_string('sentry/emails/error.txt', {
             'group': group,
