@@ -1,5 +1,6 @@
 from django import forms
 from django.core.mail import EmailMultiAlternatives
+from django.core.urlresolvers import reverse
 from django.core.validators import email_re
 from django.core.validators import ValidationError
 from django.template.loader import render_to_string
@@ -7,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from sentry.plugins import Plugin
 from sentry.plugins.sentry_mail.models import UnicodeSafePynliner
+from sentry.utils.http import absolute_uri
 
 import fnmatch
 import sentry_subscriptions
@@ -99,6 +101,9 @@ class SubscriptionsPlugin(Plugin):
             msg.attach_alternative(html_body, "text/html")
         msg.send(fail_silently=fail_silently)
 
+    def get_notification_settings_url(self):
+        return absolute_uri(reverse('sentry-account-settings-notifications'))
+
     def send_notification(self, emails, group, event, fail_silently=False):
         '''Shamelessly adapted from sentry.plugins.sentry_mail.models.MailProcessor'''
 
@@ -127,6 +132,7 @@ class SubscriptionsPlugin(Plugin):
             'event': event,
             'link': link,
             'interfaces': interface_list,
+            'settings_link': self.get_notification_settings_url(),
         })).run()
         headers = {
             'X-Sentry-Logger': event.logger,
@@ -169,7 +175,7 @@ class SubscriptionsPlugin(Plugin):
         for pattern, emails in subscriptions.iteritems():
             if fnmatch.fnmatch(event.culprit, pattern):
                     notifications += emails
-        
+
         return notifications
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
