@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from sentry.plugins import Plugin
-from sentry.plugins.sentry_mail.models import UnicodeSafePynliner
+from sentry.utils.email import UnicodeSafePynliner
 from sentry.utils.http import absolute_uri
 
 import fnmatch
