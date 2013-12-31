@@ -7,7 +7,7 @@ install_requires = [
 
 setup(
     name='sentry-subscriptions',
-    version='0.2.1',
+    version='0.2.2',
     author='John Lynn',
     author_email='jlynn@hearsaycorp.com',
     package_dir={'': 'src'},
