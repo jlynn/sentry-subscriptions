@@ -121,19 +121,17 @@ class SubscriptionsPlugin(Plugin):
 
         link = group.get_absolute_url()
 
-        body = render_to_string('sentry/emails/error.txt', {
+        template = 'sentry/emails/error.txt'
+        html_template = 'sentry/emails/error.html'
+
+        context = {
             'group': group,
             'event': event,
+            'tags': event.get_tags(),
             'link': link,
             'interfaces': interface_list,
-        })
-        html_body = UnicodeSafePynliner().from_string(render_to_string('sentry/emails/error.html', {
-            'group': group,
-            'event': event,
-            'link': link,
-            'interfaces': interface_list,
-            'settings_link': self.get_notification_settings_url(),
-        })).run()
+        }
+
         headers = {
             'X-Sentry-Logger': event.logger,
             'X-Sentry-Logger-Level': event.get_level_display(),
@@ -145,10 +143,12 @@ class SubscriptionsPlugin(Plugin):
             send_to=emails,
             subject=subject,
             body=body,
-            html_body=html_body,
+            template=template,
+            html_template=html_template,
             project=project,
             fail_silently=fail_silently,
             headers=headers,
+            context=context
         )
 
     def should_notify(self, event, is_new):
