@@ -1,7 +1,7 @@
 from django import forms
 from django.core.mail import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
-from django.core.validators import email_re
+from django.utils.html import simple_email_re as email_re
 from django.core.validators import ValidationError
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
